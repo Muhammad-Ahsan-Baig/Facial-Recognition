@@ -49,4 +49,3 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
-print('Samples Colletion Completed ')
