@@ -2,144 +2,116 @@
 Muhammad Ahsan Baig's Code
 """
 
-import cv2, sys
-
-def fun():
-	global img, thresh,w,h,original,thickness,initial,min_size_factor,max_size_factor
-	
-	#blurring a grayscaled image 
-	# w:kernel Width
-	# h:Kernel Height
-	
-	blur = cv2.GaussianBlur(img, (w, h), 0)
-	
-
-	# Anyone thresholding scheme can be used
-
-	#This one thresholding scheme requires a threshold value to be supplied : we will find out accuracy of supplied value by varying value using trackbars
-	(t, mask) = cv2.threshold(blur, thresh, 255, cv2.THRESH_BINARY)
-
-	#The following three are automatic thresholding schemes in which threshold value is calculated automatically
-
-	# (t, mask)	 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-	# mask = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115, 1)
-
-	# mask = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 115, 1)
-
-	
-	# showing the binary image
-	cv2.imshow("image", mask)
-
-	#binary image contains all the objects of interest (contours of which are to be found) in white colour with a black background 
-
-	# find contours
-	(_, contours, _) = cv2.findContours(mask, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-
-
-	#below is the calculation of average size of contours
-	avg = 0
-	for c in contours:
-		avg += len(c)
-
-	avg /= len(contours)
-	res=[]
-
-	#Below is the filtering of contours on basis of their size
-	for i,c in enumerate(contours):
-		if len(c)>=avg/min_size_factor and len(c)<=max_size_factor*avg:
-			res.append(i)
-
-	# res is a list of indices of contours which curve around actual objects of interest 		
-			
-
-	# print table of contours and sizes
-	print("Found %d objects." % len(res))
-	# for (i, c) in enumerate(contours):
-	# 	print("\tSize of contour %d: %d" % (i, len(c)))
-
-	# draw contours over the image (a temporary copy of original image)
-	cv2.imwrite('temp.jpeg',original)
-	tempo = cv2.imread('temp.jpeg',1)
-
-	for i in res:
-		cv2.drawContours(tempo, contours, i, (0, 255, 255), thickness)
-
-	# display original image with contours
-	cv2.namedWindow("output", cv2.WINDOW_NORMAL)
-	cv2.imshow("output", tempo)
-
-
-	   
 
 
 
 
 
-#The following functions get executed whenenver a modification in magnitude occurs at respective Trackbars
-
-def adjustThresh(v):
-    global thresh
-    thresh = v
-    fun()
-    
-def adjustKernelWidth(v):
-    global w
-    w= v
-    fun()
-
-
-def adjustKernelHeight(v):
-    global h
-    h = v
-    fun()
 
 
 
-def adjustMinSizeFactor(v):
-    global min_size_factor
-    min_size_factor = v
-    fun()
+import cv2
+import numpy as np
+import sys
 
-def adjustMaxSizeFactor(v):
-    global max_size_factor
-    max_size_factor = v
-    fun()
+#Method to remove border of the image
+def removeBorder(img):
+    #Arbitrarily set border value to 30
+    return img[30:len(img)-20 , 30 : len(img[0]) - 20]
+
+#Merges three images from different color channel into one and fix the brightness
+#because brightness will increase when pyramids are added up
+def getColor(blue,green,red,level):
+    #Create a blank image
+    img2 = np.zeros((len(red) , len(red[0]) , 3), np.uint8)
+    for i in range(len(img2)):
+        for j in range(len(img2[0])):
+            img2[i][j][0] = blue[i][j]/(level + 1)
+            img2[i][j][1] = green[i][j]/(level + 1)
+            img2[i][j][2] = red[i][j]/(level + 1)
+    return img2
+
+#Returns 3 images from the input image
+def getAllFilters(img):
+    filters = []
+    for k in range(3):
+        #Create a blank image of one third height of the original image but with same width
+        img2 = np.zeros((len(img) / 3, len(img[0]) - 20, 1), np.uint8)
+        for i in range(len(img2)):
+            for j in range(len(img2[0])):
+                #Lower part of the image is the blue filter
+                if k == 0:
+                    img2[i][j] = img[i + (2 * len(img2))][j]
+                #Middle part of the image is the green filter
+                if k == 1:
+                    img2[i][j] = img[i + len(img2)][j]
+                #Upper portion of the image is red filter
+                if k == 2:
+                    img2[i][j] = img[i][j]
+        filters.append(img2)
+    return filters
+
+#Returns a list of images that belongs to each level of the pyramid
+def getAllPyramids(img , level):
+    G = img.copy()
+    gpA = [G]
+    for i in xrange(level):
+        #Get image in the lower level of the pyramid
+        G = cv2.pyrDown(G)
+        gpA.append(G)
+    return gpA
+
+#Add all the images n the pyramid from smaller to bigger image
+def reconstruct(colorPyramid,level):
+    #Get top most image i.e smallest
+    im = colorPyramid[level]
+    for i in range(len(colorPyramid) - 2, -1, -1):
+        #Scale up the previous level image
+        im = cv2.pyrUp(im)
+        #Resize because because pyrUp can give slightly bigger or smaller image than the original pyramid
+        #as data is lost in scaling down
+        im = cv2.resize(im, (colorPyramid[i].shape[1], colorPyramid[i].shape[0]))
+        #Add the Scalled up image and the image on the same level in the original image pyramid
+        im = cv2.add(im, colorPyramid[i])
+    return im
 
 
+def task_1(img):
+    img2 = np.zeros((len(img) / 3, len(img[0]) - 20, 3), np.uint8)
+    for i in range(len(img2)):
+        for j in range(len(img2[0])):
+            img2[i][j][2] = img[i + (2 * len(img2))][j]
+            img2[i][j][1] = img[i + len(img2)][j]
+            img2[i][j][0] = img[i][j]
+    return img2
 
+level = 4
+if len(sys.argv) < 2:
+    print "Not Enough Argument"
+    sys.exit(0)
 
+img = cv2.imread(sys.argv[1],0)
 
-'''
- * Main program begins here.
-'''
+#########TASK 3 starts########
+filters = getAllFilters(img)
+pyramids = []
+for filter in filters:
+    pyramids.append(getAllPyramids(filter,level))
+colorPyramid = []
+for i in range(len(pyramids[0])):
+    colorPyramid.append(getColor(pyramids[2][i],pyramids[1][i],pyramids[0][i],level))
 
-# read and save command-line parameters
-filename = sys.argv[1]
-thickness = int(sys.argv[2])
+im = reconstruct(colorPyramid,level)
+#########TASK 3 ends##########
 
-# read image as grayscale, and blur it
-original = cv2.imread(filename)
-img = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
+#########TASK 2 starts########
+im = removeBorder(im)
+#########TASK 2 ends##########
 
-
-
-# create the display window and the trackbar
-cv2.namedWindow("image", cv2.WINDOW_NORMAL)
-thresh = 128
-w=5
-h=5
-min_size_factor=2
-max_size_factor=2
-
-
-#creating and associating trackbars with respective methods
-cv2.createTrackbar("thresh", "image", thresh, 255, adjustThresh)
-cv2.createTrackbar("kernelw", "image", w, 155, adjustKernelWidth)
-cv2.createTrackbar("kernelh", "image", h, 155, adjustKernelHeight)
-cv2.createTrackbar("x in (avg/x)", "image", min_size_factor, 20, adjustMinSizeFactor)
-cv2.createTrackbar("y in (avg*y)", "image", max_size_factor, 20, adjustMaxSizeFactor)
-
-
-fun()
+#Show the final images
+cv2.imshow('Image',im)
 cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+
