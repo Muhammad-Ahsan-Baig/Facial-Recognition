@@ -49,24 +49,17 @@ cap.release()
 cv2.destroyAllWindows()
 
 """
-import numpy as np
 import cv2
+import numpy as np
+from matplotlib import pyplot as plt
 
-face_cascade=cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+img = cv2.imread('Image.jpg',0)
+edges = cv2.Canny(img,100,200)
 
-cap=cv2.VideoCapture(0)
+plt.subplot(121),plt.imshow(img,cmap = 'gray')
+plt.title('Original Image'), plt.xticks([]), plt.yticks([])
+plt.subplot(122),plt.imshow(edges,cmap = 'gray')
+plt.title('Edge Image'), plt.xticks([]), plt.yticks([])
 
-while True:
-	ret, img=cap.read()
-	gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-	faces=face_cascade.detectMultiScale(gray, 1.3, 5)
-	for(x,y,w,h) in faces:
-		cv2.rectangle(img, (x,y), (x+w,y+h), (0,255,255), 2)
-	cv2.imshow('FaceDetection',img)
-	k=cv2.waitKey(30) & 0xff
-	if k==27:
-		break
-	
-cap.release()
-cv2.destroyAllWindows()
+plt.show()
 
