@@ -1,117 +1,87 @@
 """
 Muhammad Ahsan Baig's Code
 """
-
-
-
-
-
-
-
-
-
+# Import the modules
 import cv2
 import numpy as np
-import sys
+from os import listdir
+from os.path import isfile, join
+#C:/Users/Muhammad Ahsan Baig/Downloads/pics/
+#E:/X/AI PROJECT UPLOADS/pics/
+#E:/X/AI PROJECT UPLOADS/facial_recognition-main/
 
-#Method to remove border of the image
-def removeBorder(img):
-    #Arbitrarily set border value to 30
-    return img[30:len(img)-20 , 30 : len(img[0]) - 20]
+#os.listdir() will get you everything that's in a directory - files and directories. If you want just files, you could either filter this down using os.path:
+data_path = 'E:/X/AI PROJECT UPLOADS/pics/'
+onlyfiles = [f for f in listdir(data_path) if isfile(join(data_path,f))]
 
-#Merges three images from different color channel into one and fix the brightness
-#because brightness will increase when pyramids are added up
-def getColor(blue,green,red,level):
-    #Create a blank image
-    img2 = np.zeros((len(red) , len(red[0]) , 3), np.uint8)
-    for i in range(len(img2)):
-        for j in range(len(img2[0])):
-            img2[i][j][0] = blue[i][j]/(level + 1)
-            img2[i][j][1] = green[i][j]/(level + 1)
-            img2[i][j][2] = red[i][j]/(level + 1)
-    return img2
+Training_Data, Labels = [], []
 
-#Returns 3 images from the input image
-def getAllFilters(img):
-    filters = []
-    for k in range(3):
-        #Create a blank image of one third height of the original image but with same width
-        img2 = np.zeros((len(img) / 3, len(img[0]) - 20, 1), np.uint8)
-        for i in range(len(img2)):
-            for j in range(len(img2[0])):
-                #Lower part of the image is the blue filter
-                if k == 0:
-                    img2[i][j] = img[i + (2 * len(img2))][j]
-                #Middle part of the image is the green filter
-                if k == 1:
-                    img2[i][j] = img[i + len(img2)][j]
-                #Upper portion of the image is red filter
-                if k == 2:
-                    img2[i][j] = img[i][j]
-        filters.append(img2)
-    return filters
+for i, files in enumerate(onlyfiles):
+    image_path = data_path + onlyfiles[i]   # complete image location
+    images = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)  # reading image in grayscale format 
+    Training_Data.append(np.asarray(images, dtype=np.uint8))   # convert image to numpy array and saving in list
+    Labels.append(i)
 
-#Returns a list of images that belongs to each level of the pyramid
-def getAllPyramids(img , level):
-    G = img.copy()
-    gpA = [G]
-    for i in xrange(level):
-        #Get image in the lower level of the pyramid
-        G = cv2.pyrDown(G)
-        gpA.append(G)
-    return gpA
+Labels = np.asarray(Labels, dtype=np.int32)    # convert labels list to numpy array 
 
-#Add all the images n the pyramid from smaller to bigger image
-def reconstruct(colorPyramid,level):
-    #Get top most image i.e smallest
-    im = colorPyramid[level]
-    for i in range(len(colorPyramid) - 2, -1, -1):
-        #Scale up the previous level image
-        im = cv2.pyrUp(im)
-        #Resize because because pyrUp can give slightly bigger or smaller image than the original pyramid
-        #as data is lost in scaling down
-        im = cv2.resize(im, (colorPyramid[i].shape[1], colorPyramid[i].shape[0]))
-        #Add the Scalled up image and the image on the same level in the original image pyramid
-        im = cv2.add(im, colorPyramid[i])
-    return im
+model = cv2.face.LBPHFaceRecognizer_create()  # Local binary patterns histograms (LBPH) Face Recognizer.The idea with LBPH is not to look at the image as a whole, but instead, try to find its local structure by comparing each pixel to the neighboring pixels.LBP faces are not affected by changes in light conditions.In the end, you will have one histogram for each face in the training data set. That means that if there were 100 images in the training data set then LBPH will extract 100 histograms after training and store them for later recognition. Remember, the algorithm also keeps track of which histogram belongs to which person.
+
+model.train(np.asarray(Training_Data), np.asarray(Labels)) # training the model
+
+print("Dataset Model Training Complete!!!!!")
+# Loading HAAR face classifier
+face_classifier = cv2.CascadeClassifier('E:/X/AI PROJECT UPLOADS/facial_recognition-main/haarcascade_frontalface_default.xml')
+
+def face_detector(img):
+    # We use cvtColor, to convert image into grayscale format
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    faces = face_classifier.detectMultiScale(gray,1.3,5)  # image is taken in grayscale format because many image data manipulations are done in it
+
+    if faces is():
+        return img,[]
+
+    for(x,y,w,h) in faces:
+        cv2.rectangle(img, (x,y),(x+w,y+h),(0,255,0),2) # 2 POINT TO DRAW RECTANGLE-VERTICES,RGB VALUES,THICKNESS
+        roi = img[y:y+h, x:x+w]  # CROPING IMAGE
+        roi = cv2.resize(roi, (200,200)) # cv2.resize(image,(width,height))
+
+    return img,roi
+# Open Webcam
+cap = cv2.VideoCapture(0)
+while True:
+
+    ret, frame = cap.read()
+
+    image, face = face_detector(frame)
+
+    try:
+        face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+        # Pass face to prediction model
+        # "results" comprises of a tuple containing the label and the confidence value
+        result = model.predict(face)
+        # Tell about the confidence of user.
+        if result[1] < 500:
+            confidence = int(100*(1-(result[1])/300))
 
 
-def task_1(img):
-    img2 = np.zeros((len(img) / 3, len(img[0]) - 20, 3), np.uint8)
-    for i in range(len(img2)):
-        for j in range(len(img2[0])):
-            img2[i][j][2] = img[i + (2 * len(img2))][j]
-            img2[i][j][1] = img[i + len(img2)][j]
-            img2[i][j][0] = img[i][j]
-    return img2
+        # If confidence is greater than 80 then the face will be recognized.
+        if confidence > 80:
+            cv2.putText(image, "Muhammad Ahsan Baig", (250, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2) # writing the Name in the screen at x,ycoordinate,with hershey fonts-ints,fontscale,color-RGB(WHITE),thickness
+            cv2.imshow('Face Cropper', image)
+        # If confidence is less than 90 then the face will not be recognized.
+        else:
+            cv2.putText(image, "Unknown", (250, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2) # RGB -BLUE
+            cv2.imshow('Face Cropper', image)
 
-level = 4
-if len(sys.argv) < 2:
-    print "Not Enough Argument"
-    sys.exit(0)
+    # Raise exception in case, no image is found
+    except:
+        cv2.putText(image, "Face Not Found", (250, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0), 2) # RGB -RED
+        cv2.imshow('Face Cropper', image)
+        pass
+    # Breaks loop when enter is pressed
+    if cv2.waitKey(1)==13:   #13 is the Enter Key
+        break
 
-img = cv2.imread(sys.argv[1],0)
-
-#########TASK 3 starts########
-filters = getAllFilters(img)
-pyramids = []
-for filter in filters:
-    pyramids.append(getAllPyramids(filter,level))
-colorPyramid = []
-for i in range(len(pyramids[0])):
-    colorPyramid.append(getColor(pyramids[2][i],pyramids[1][i],pyramids[0][i],level))
-
-im = reconstruct(colorPyramid,level)
-#########TASK 3 ends##########
-
-#########TASK 2 starts########
-im = removeBorder(im)
-#########TASK 2 ends##########
-
-#Show the final images
-cv2.imshow('Image',im)
-cv2.waitKey(0)
+# Release and destroyAllWindows
+cap.release()
 cv2.destroyAllWindows()
-
-
-
