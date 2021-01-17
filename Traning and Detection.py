@@ -11,7 +11,9 @@ from os.path import isfile, join
 #E:/X/AI PROJECT UPLOADS/facial_recognition-main/
 
 #os.listdir() will get you everything that's in a directory - files and directories. If you want just files, you could either filter this down using os.path:
-data_path = 'E:/X/AI PROJECT UPLOADS/pics/'
+#C:/Users/Muhammad Ahsan Baig/Downloads/pics/
+# data_path = 'E:/X/AI PROJECT UPLOADS/pics/'
+data_path = 'C:/Users/Muhammad Ahsan Baig/Downloads/pics/'
 onlyfiles = [f for f in listdir(data_path) if isfile(join(data_path,f))]
 
 Training_Data, Labels = [], []
@@ -30,7 +32,8 @@ model.train(np.asarray(Training_Data), np.asarray(Labels)) # training the model
 
 print("Dataset Model Training Complete!!!!!")
 # Loading HAAR face classifier
-face_classifier = cv2.CascadeClassifier('E:/X/AI PROJECT UPLOADS/facial_recognition-main/haarcascade_frontalface_default.xml')
+face_classifier = cv2.CascadeClassifier('D:/University/BSE 7-B/Artificial Intelligence Lab/AI Project/haarcascade_frontalface_default.xml')
+#face_classifier = cv2.CascadeClassifier('E:/X/AI PROJECT UPLOADS/facial_recognition-main/haarcascade_frontalface_default.xml')
 
 def face_detector(img):
     # We use cvtColor, to convert image into grayscale format

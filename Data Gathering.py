@@ -5,8 +5,9 @@ Usama Bin Nazim's Code
 """
 import cv2
 import numpy as np
-
-face_classifier = cv2.CascadeClassifier('C:/Users/Muhammad Ahsan Baig/Downloads/facial_recognition-main/haarcascade_frontalface_default.xml')
+#D:\University\BSE 7-B\Artificial Intelligence Lab\AI Project
+#face_classifier = cv2.CascadeClassifier('C:/Users/Muhammad Ahsan Baig/Downloads/facial_recognition-main/haarcascade_frontalface_default.xml')
+face_classifier = cv2.CascadeClassifier('D:/University/BSE 7-B/Artificial Intelligence Lab/AI Project/haarcascade_frontalface_default.xml')
 #C:/Users/Muhammad Ahsan Baig/Downloads/opencv-master/data/haarcascades/data/haarcascade_frontalface_default.xml
 #C:/Users/User/AppData/Local/Programs/Python/Python38-32/Lib/site-packages/cv2/data/haarcascade_frontalface_default.xml
 def face_extractor(img):
