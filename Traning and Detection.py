@@ -68,15 +68,18 @@ while True:
         if confidence > 80:
             cv2.putText(image, "Muhammad Ahsan Baig", (250, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2) # writing the Name in the screen at x,ycoordinate,with hershey fonts-ints,fontscale,color-RGB(WHITE),thickness
             cv2.imshow('Face Cropper', image)
+            print("Door Opened")
         # If confidence is less than 90 then the face will not be recognized.
         else:
             cv2.putText(image, "Unknown", (250, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2) # RGB -BLUE
             cv2.imshow('Face Cropper', image)
+            print("Alarm Ringing --- Intruder Infront of Door No 23 on 5th Floor .")
 
     # Raise exception in case, no image is found
     except:
         cv2.putText(image, "Face Not Found", (250, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0), 2) # RGB -RED
         cv2.imshow('Face Cropper', image)
+        print("Door Closed")
         pass
     # Breaks loop when enter is pressed
     if cv2.waitKey(1)==13:   #13 is the Enter Key
